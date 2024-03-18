@@ -2,20 +2,40 @@
 include("./collatzConjecture.php");
 $range = null;
 $fib = false;
+$hist = false;
+$histogram = null;
 
-if (!empty($_POST["from"]))
+if (!empty($_POST["from"])) {
     $range = new CollatzConjectureRange($_POST["from"], $_POST["to"]);
+
+}
 if (!empty($_POST["fibonacci"]))
     $fib = true;
+
+if (!empty($_POST["diagram"]) && !empty($_POST["to"])) {
+    $hist = true;
+    $histogram = new Diagram($_POST["from"], $_POST["to"]);
+}
 ?>
+
 
 <html>
 
 <head>
-
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <style>
     body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .resultSec {
+        display: flex;
+    }
+
+    .maxMinSec {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -46,6 +66,11 @@ if (!empty($_POST["fibonacci"]))
     }
 
     form>.fibCheckBox {
+        display: flex;
+        flex-direction: row;
+    }
+
+    form>.histoCheckBox {
         display: flex;
         flex-direction: row;
     }
@@ -122,6 +147,19 @@ if (!empty($_POST["fibonacci"]))
         padding: 8px;
         box-shadow: 0px 0px 10px gray;
     }
+
+    #myHistogram {
+        box-shadow: 0px 0px 10px gray;
+    }
+
+    .rectSt {
+        fill: rgb(100, 118, 118);
+    }
+
+    .rectSt:hover {
+        fill: rgb(64, 224, 208);
+        cursor: pointer;
+    }
 </style>
 
 <body>
@@ -141,70 +179,138 @@ if (!empty($_POST["fibonacci"]))
             <input type="checkbox" name="fibonacci" value="true" />
             <span><strong>Fibonacci Sequence</strong> (optional)</span>
         </label>
+        <label class="histoCheckBox">
+            <input type="checkbox" name="diagram" value="true" />
+            <span><strong>Histogram</strong> (optional)</span>
+        </label>
         <button>Calculate</button>
     </form>
-
-
-    <?php if ($range) { ?>
-        <div class="resultRange">
-            <?php
-            if (count($range->getResults()) > 1) {
-                foreach ($fib ? $range->get_fibonacciProgression() : $range->getResults() as $elem) { ?>
-                    <div class="elem">
-                        <span>Number:
-                            <?php echo $elem->get_num() ?>
-                        </span>
-                        <span>Iterations:
-                            <?php echo $elem->get_iterations() ?>
-                        </span>
-                        <span>Highest Value:
-                            <?php echo $elem->get_highIteration() ?>
-                        </span>
-                    </div>
-                <?php } ?>
-
-            <?php } else {
-                $oneConjecture = $range->getResults()[0]; ?>
-                <div class="result">
-                    <div class="conjecture">
-                        <?php foreach ($oneConjecture->get_sequence() as $elem) { ?>
-                            <span>
-                                <?php echo $elem; ?>
-                            </span>
-                        <?php } ?>
-                    </div>
-                    <span>
-                        Iterations:
-                        <?php echo $oneConjecture->get_iterations(); ?>
-                    </span>
-                    <span>
-                        Highest Value:
-                        <?php echo $oneConjecture->get_highIteration(); ?>
-                    </span>
-                </div>
-            <?php } ?>
-        </div>
-        <?php if (count($range->getResults()) > 1) { ?>
-            <span>Min & Max value</span>
-            <div class="maxMin">
+    <div class="resultSec">
+        <?php if ($range) { ?>
+            <div class="resultRange">
                 <?php
-                foreach ($fib ? $range->get_Max_Min($range->get_fibonacciProgression()) : $range->get_Max_Min($range->getResults()) as $elem) { ?>
-                    <div class="elem">
-                        <span>Number:
-                            <?php echo $elem->get_num() ?>
+                if (count($range->getResults()) > 1) {
+                    foreach ($fib ? $range->get_fibonacciProgression() : $range->getResults() as $elem) { ?>
+                        <div class="elem">
+                            <span>Number:
+                                <?php echo $elem->get_num() ?>
+                            </span>
+                            <span>Iterations:
+                                <?php echo $elem->get_iterations() ?>
+                            </span>
+                            <span>Highest Value:
+                                <?php echo $elem->get_highIteration() ?>
+                            </span>
+                        </div>
+                    <?php } ?>
+
+                <?php } else {
+                    $oneConjecture = $range->getResults()[0]; ?>
+                    <div class="result">
+                        <div class="conjecture">
+                            <?php foreach ($oneConjecture->get_sequence() as $elem) { ?>
+                                <span>
+                                    <?php echo $elem; ?>
+                                </span>
+                            <?php } ?>
+                        </div>
+                        <span>
+                            Iterations:
+                            <?php echo $oneConjecture->get_iterations(); ?>
                         </span>
-                        <span>Iterations:
-                            <?php echo $elem->get_iterations() ?>
-                        </span>
-                        <span>Highest Value:
-                            <?php echo $elem->get_highIteration() ?>
+                        <span>
+                            Highest Value:
+                            <?php echo $oneConjecture->get_highIteration(); ?>
                         </span>
                     </div>
                 <?php } ?>
             </div>
-        <?php } ?>
-    <?php } ?>
+            <?php if (count($range->getResults()) > 1) { ?>
+                <div classs="maxMinSec">
+                    <span>Min & Max value</span>
+                    <div class="maxMin">
+                        <?php
+                        foreach ($fib ? $range->get_Max_Min($range->get_fibonacciProgression()) : $range->get_Max_Min($range->getResults()) as $elem) { ?>
+                            <div class="elem">
+                                <span>Number:
+                                    <?php echo $elem->get_num() ?>
+                                </span>
+                                <span>Iterations:
+                                    <?php echo $elem->get_iterations() ?>
+                                </span>
+                                <span>Highest Value:
+                                    <?php echo $elem->get_highIteration() ?>
+                                </span>
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+            <?php } ?>
+            <?php if ($hist) { ?>
 
+                <svg id="myHistogram"></svg>
+
+                <script>
+                    const xAxisd = <?php echo $histogram->getXAxis(); ?>;
+                    const yAxisd = <?php echo $histogram->getYAxis(); ?>;
+                    const dataset = [];
+                    xAxisd.forEach((elem, i) => dataset.push([parseInt(xAxisd[i]), parseInt(yAxisd[i])]));
+
+                    const height = 300;
+                    const width = 500;
+                    const padding = 30;
+
+                    const xScale = d3.scaleLinear()
+                        .domain([d3.min(dataset, (d) => d[0]), d3.max(dataset, (d) => d[0]) + 1])
+                        .range([padding, width - padding]);
+
+                    const yScale = d3.scaleLinear()
+                        .domain([0, d3.max(dataset, (d) => d[1])])
+                        .range([height - padding, padding]);
+
+                    const svg = d3.select("#myHistogram")
+                        .attr("height", height)
+                        .attr("width", width);
+
+                    svg.selectAll("rect")
+                        .data(dataset)
+                        .enter()
+                        .append("rect")
+                        .attr("class", "rectSt")
+                        .attr("height", (d) => height - yScale(d[1]) - padding)
+                        .attr("width", (d) => (width - 2 * padding) / dataset.length)
+                        .attr("x", (d, i) => xScale(d[0]))
+                        .attr("y", (d) => yScale(d[1]))
+                        .append("title")
+                        .text((d) => `Number: ${d[0]} \nIterations: ${d[1]}`);
+
+                    const yAxis = d3.axisLeft(yScale);
+                    const xAxis = d3.axisBottom(xScale);
+                    svg.append("g")
+                        .attr("transform", `translate(${padding},${0})`)
+                        .call(yAxis);
+                    svg.append("g")
+                        .attr("transform", `translate(${0},${height - padding})`)
+                        .call(xAxis);
+
+                </script>
+
+            <?php } ?>
+        <?php } ?>
+    </div>
+    <script>
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                checkboxes.forEach(otherCheckbox => {
+                    if (otherCheckbox !== this) {
+                        otherCheckbox.checked = false;
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

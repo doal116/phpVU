@@ -1,6 +1,5 @@
 <?php
 
-
 class CollatzConjecture
 {
     private $iterations;
@@ -57,12 +56,13 @@ class CollatzConjecture
 }
 
 
+
 class CollatzConjectureRange
 {
     private $from;
     private $to;
 
-    private $result;
+    protected $result;
 
     private function genRangeRes($from, $to)
     {
@@ -127,6 +127,39 @@ class CollatzConjectureRange
         return $res;
     }
 }
+class Diagram extends CollatzConjectureRange
+{
+    private $yAxis;
+    private $xAxis;
 
+    private function genData()
+    {
+        $yValue = array();
+        $xValue = array();
+
+        foreach ($this->result as $elem) {
+            $yValue[] = $elem->get_iterations();
+            $xValue[] = $elem->get_num();
+        }
+        $this->yAxis = $yValue;
+        $this->xAxis = $xValue;
+    }
+
+    function __construct($from, $to = null)
+    {
+        parent::__construct($from, $to);
+        $this->genData();
+    }
+
+
+    function getYAxis()
+    {
+        return json_encode($this->yAxis);
+    }
+    function getXAxis()
+    {
+        return json_encode($this->xAxis);
+    }
+}
 
 ?>
